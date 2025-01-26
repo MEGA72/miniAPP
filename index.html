@@ -57,20 +57,18 @@
             cursor: pointer;
         }
 
-        .footer-links {
-            text-align: center;
-            padding: 15px;
-            color: #666;
-            border-top: 1px solid #eee;
-            margin-top: 20px;
+        .submenu {
+            margin-left: 20px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
-        .avatar {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            margin: 0 auto 20px;
-            display: block;
+        .back-button {
+            color: #666;
+            padding: 10px;
+            margin-bottom: 10px;
+            cursor: pointer;
         }
     </style>
 </head>
@@ -90,25 +88,31 @@
                 <p style="text-align: center; color: #666;" v-if="user.username">@{{ user.username }}</p>
 
                 <div class="profile-item" @click="openSettings">Настройки</div>
-                <div class="profile-item" @click="openAbout">О нас</div>
-                <div class="profile-item" @click="shareFeedback">Поделиться мнением</div>
-                <div class="profile-item" @click="openRequests">Запросы</div>
-                <div class="profile-item" @click="contactSupport">Написать в поддержку</div>
+                <div class="profile-item" @click="openNotifications">Уведомления</div>
+                <div class="profile-item" @click="openSecurity">Безопасность</div>
+                <div class="profile-item" @click="openActivity">История действий</div>
+                <div class="profile-item" @click="openAbout">О приложении</div>
+                <div class="profile-item" @click="contactSupport">Поддержка</div>
+                <div class="profile-item" @click="logout" style="color: #e74c3c;">Выход</div>
             </div>
 
             <!-- Функции -->
             <div v-if="currentPage === 'functions'">
-                <h3>Доступные функции:</h3>
-                <div class="profile-item">Функция 1 (в разработке)</div>
-                <div class="profile-item">Функция 2 (в разработке)</div>
-                <div class="profile-item">Функция 3 (в разработке)</div>
-                <div class="profile-item">Функция 4 (в разработке)</div>
-            </div>
+                <div v-if="!showKnowledgeBase">
+                    <h3>Доступные функции:</h3>
+                    <div class="profile-item" @click="openQRScanner">Сканирование QR кода</div>
+                    <div class="profile-item" @click="openPolls">Опросы</div>
+                    <div class="profile-item" @click="showKnowledgeBase = true">База знаний</div>
+                </div>
 
-            <div class="footer-links">
-                <div>Сайт компании</div>
-                <div>Политика конфиденциальности</div>
-                <div>Пользовательское соглашение</div>
+                <!-- Подменю базы знаний -->
+                <div v-if="showKnowledgeBase">
+                    <div class="back-button" @click="showKnowledgeBase = false">← Назад</div>
+                    <h3>Базы знаний:</h3>
+                    <div class="profile-item" @click="openKnowledgeBase('tb')">Техника безопасности</div>
+                    <div class="profile-item" @click="openKnowledgeBase('labor')">Охрана труда</div>
+                    <div class="profile-item" @click="openKnowledgeBase('fire')">Пожарная безопасность</div>
+                </div>
             </div>
         </div>
 
@@ -117,7 +121,7 @@
             <div 
                 class="nav-button" 
                 :class="{active: currentPage === 'functions'}"
-                @click="currentPage = 'functions'"
+                @click="currentPage = 'functions'; showKnowledgeBase = false"
             >
                 Функции
             </div>
@@ -136,8 +140,10 @@
 
         createApp({
             setup() {
-                const currentPage = ref('profile');
+                const currentPage = ref('functions');
+                const showKnowledgeBase = ref(false);
                 const user = ref({});
+                
                 const fullName = computed(() => {
                     return [user.value.first_name, user.value.last_name]
                         .filter(Boolean)
@@ -152,23 +158,42 @@
                     Telegram.WebApp.expand();
                 };
 
-                const openSettings = () => alert('Раздел настроек в разработке');
-                const openAbout = () => alert('О нас: версия 1.0.0');
-                const shareFeedback = () => Telegram.WebApp.openLink('https://example.com/feedback');
-                const openRequests = () => alert('Запросы пока недоступны');
-                const contactSupport = () => Telegram.WebApp.openTelegramLink('tg://resolve?domain=support');
+                // Методы профиля
+                const openSettings = () => Telegram.WebApp.showAlert('Настройки пока недоступны');
+                const openNotifications = () => Telegram.WebApp.showAlert('Настройте уведомления в телеграм');
+                const openSecurity = () => Telegram.WebApp.openLink('https://example.com/security');
+                const openActivity = () => Telegram.WebApp.showAlert('История действий пуста');
+                const openAbout = () => Telegram.WebApp.showAlert('Версия 2.1.0\n© 2024');
+                const logout = () => Telegram.WebApp.close();
+
+                // Методы функций
+                const openQRScanner = () => Telegram.WebApp.showScanQrPopup({text: 'Наведите на QR-код'});
+                const openPolls = () => Telegram.WebApp.openLink('https://example.com/polls');
+                const openKnowledgeBase = (type) => {
+                    const bases = {
+                        tb: 'Техника безопасности',
+                        labor: 'Охрана труда',
+                        fire: 'Пожарная безопасность'
+                    };
+                    Telegram.WebApp.showAlert(`Открыта база: ${bases[type]}`);
+                };
 
                 onMounted(initUserData);
 
                 return {
                     currentPage,
+                    showKnowledgeBase,
                     user,
                     fullName,
                     openSettings,
+                    openNotifications,
+                    openSecurity,
+                    openActivity,
                     openAbout,
-                    shareFeedback,
-                    openRequests,
-                    contactSupport
+                    logout,
+                    openQRScanner,
+                    openPolls,
+                    openKnowledgeBase
                 };
             }
         }).mount('#app');
