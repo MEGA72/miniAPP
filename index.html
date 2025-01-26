@@ -4,15 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Telegram Mini App</title>
-    <!-- Подключаем Telegram Web App SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <!-- Подключаем Vue 3 через CDN -->
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <style>
         :root {
             --tg-theme-bg-color: #ffffff;
             --tg-theme-text-color: #000000;
             --tg-theme-button-color: #2481cc;
+            --tg-theme-secondary-bg-color: #f4f4f5;
         }
 
         body {
@@ -20,68 +19,115 @@
             color: var(--tg-theme-text-color);
             font-family: -apple-system, system-ui;
             margin: 0;
-            padding: 20px;
+            padding: 0;
         }
 
-        .profile {
-            max-width: 400px;
-            margin: 0 auto;
+        .container {
+            padding: 20px;
+            min-height: calc(100vh - 120px);
+        }
+
+        .nav-buttons {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            display: flex;
+            background: var(--tg-theme-secondary-bg-color);
+            border-top: 1px solid #ddd;
+        }
+
+        .nav-button {
+            flex: 1;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .nav-button.active {
+            background: var(--tg-theme-button-color);
+            color: white;
+        }
+
+        .profile-item {
+            padding: 15px;
+            margin: 10px 0;
+            background: var(--tg-theme-secondary-bg-color);
+            border-radius: 10px;
+            cursor: pointer;
+        }
+
+        .footer-links {
+            text-align: center;
+            padding: 15px;
+            color: #666;
+            border-top: 1px solid #eee;
+            margin-top: 20px;
         }
 
         .avatar {
-            width: 100px;
-            height: 100px;
+            width: 80px;
+            height: 80px;
             border-radius: 50%;
-            margin: 20px auto;
+            margin: 0 auto 20px;
             display: block;
-        }
-
-        .form-group {
-            margin-bottom: 15px;
-        }
-
-        input {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 8px;
-        }
-
-        button {
-            background: var(--tg-theme-button-color);
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 10px;
-            width: 100%;
-            cursor: pointer;
         }
     </style>
 </head>
 <body>
     <div id="app">
-        <div class="profile">
-            <img 
-                v-if="user.photo_url"
-                :src="user.photo_url" 
-                class="avatar" 
-                alt="Avatar"
-            >
-            
-            <h2>{{ fullName }}</h2>
-            <p v-if="user.username">@{{ user.username }}</p>
-
-            <div class="form-group">
-                <input 
-                    type="email" 
-                    v-model="email"
-                    placeholder="Ваш email"
+        <div class="container">
+            <!-- Профиль -->
+            <div v-if="currentPage === 'profile'">
+                <img 
+                    v-if="user.photo_url"
+                    :src="user.photo_url" 
+                    class="avatar" 
+                    alt="Avatar"
                 >
+                
+                <h2 style="text-align: center;">{{ fullName }}</h2>
+                <p style="text-align: center; color: #666;" v-if="user.username">@{{ user.username }}</p>
+
+                <div class="profile-item" @click="openSettings">Настройки</div>
+                <div class="profile-item" @click="openAbout">О нас</div>
+                <div class="profile-item" @click="shareFeedback">Поделиться мнением</div>
+                <div class="profile-item" @click="openRequests">Запросы</div>
+                <div class="profile-item" @click="contactSupport">Написать в поддержку</div>
             </div>
 
-            <button @click="saveData">
-                {{ isSaved ? 'Данные сохранены!' : 'Сохранить' }}
-            </button>
+            <!-- Функции -->
+            <div v-if="currentPage === 'functions'">
+                <h3>Доступные функции:</h3>
+                <div class="profile-item">Функция 1 (в разработке)</div>
+                <div class="profile-item">Функция 2 (в разработке)</div>
+                <div class="profile-item">Функция 3 (в разработке)</div>
+                <div class="profile-item">Функция 4 (в разработке)</div>
+            </div>
+
+            <div class="footer-links">
+                <div>Сайт компании</div>
+                <div>Политика конфиденциальности</div>
+                <div>Пользовательское соглашение</div>
+            </div>
+        </div>
+
+        <!-- Навигация -->
+        <div class="nav-buttons">
+            <div 
+                class="nav-button" 
+                :class="{active: currentPage === 'functions'}"
+                @click="currentPage = 'functions'"
+            >
+                Функции
+            </div>
+            <div 
+                class="nav-button"
+                :class="{active: currentPage === 'profile'}"
+                @click="currentPage = 'profile'"
+            >
+                Профиль
+            </div>
         </div>
     </div>
 
@@ -90,49 +136,39 @@
 
         createApp({
             setup() {
+                const currentPage = ref('profile');
                 const user = ref({});
-                const email = ref('');
-                const isSaved = ref(false);
-
-                // Получаем данные пользователя из Telegram
-                const initUserData = () => {
-                    if (Telegram.WebApp.initDataUnsafe.user) {
-                        user.value = Telegram.WebApp.initDataUnsafe.user;
-                    }
-                    Telegram.WebApp.ready(); // Говорим Telegram, что приложение готово
-                    Telegram.WebApp.expand(); // Раскрываем приложение на весь экран
-                };
-
-                // Вычисляемое свойство для полного имени
                 const fullName = computed(() => {
                     return [user.value.first_name, user.value.last_name]
                         .filter(Boolean)
                         .join(' ');
                 });
 
-                // Сохраняем данные
-                const saveData = () => {
-                    if (!email.value.trim()) return;
-                    
-                    // Отправляем данные в бота
-                    Telegram.WebApp.sendData(JSON.stringify({
-                        userId: user.value.id,
-                        email: email.value
-                    }));
-                    
-                    isSaved.value = true;
-                    setTimeout(() => isSaved.value = false, 2000);
+                const initUserData = () => {
+                    if (Telegram.WebApp.initDataUnsafe.user) {
+                        user.value = Telegram.WebApp.initDataUnsafe.user;
+                    }
+                    Telegram.WebApp.ready();
+                    Telegram.WebApp.expand();
                 };
 
-                // Инициализируем при загрузке
+                const openSettings = () => alert('Раздел настроек в разработке');
+                const openAbout = () => alert('О нас: версия 1.0.0');
+                const shareFeedback = () => Telegram.WebApp.openLink('https://example.com/feedback');
+                const openRequests = () => alert('Запросы пока недоступны');
+                const contactSupport = () => Telegram.WebApp.openTelegramLink('tg://resolve?domain=support');
+
                 onMounted(initUserData);
 
                 return {
+                    currentPage,
                     user,
-                    email,
-                    isSaved,
                     fullName,
-                    saveData
+                    openSettings,
+                    openAbout,
+                    shareFeedback,
+                    openRequests,
+                    contactSupport
                 };
             }
         }).mount('#app');
