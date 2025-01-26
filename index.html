@@ -6,6 +6,10 @@
     <title>Telegram Mini App</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    
+    <!-- Иконки из Material Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    
     <style>
         :root {
             --tg-theme-bg-color: #ffffff;
@@ -42,6 +46,10 @@
             text-align: center;
             cursor: pointer;
             transition: 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
 
         .nav-button.active {
@@ -49,19 +57,25 @@
             color: white;
         }
 
-        .profile-item {
+        .menu-item {
             padding: 15px;
             margin: 10px 0;
             background: var(--tg-theme-secondary-bg-color);
             border-radius: 10px;
             cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .menu-item i {
+            font-size: 24px;
+            width: 30px;
+            color: #666;
         }
 
         .submenu {
             margin-left: 20px;
-            background: #fff;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
         .back-button {
@@ -69,6 +83,28 @@
             padding: 10px;
             margin-bottom: 10px;
             cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .knowledge-base-card {
+            padding: 15px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin: 10px 0;
+        }
+
+        .knowledge-base-card h4 {
+            margin: 0 0 8px 0;
+            color: var(--tg-theme-button-color);
+        }
+
+        .knowledge-base-card p {
+            margin: 0;
+            color: #666;
+            font-size: 14px;
         }
     </style>
 </head>
@@ -77,41 +113,78 @@
         <div class="container">
             <!-- Профиль -->
             <div v-if="currentPage === 'profile'">
-                <img 
-                    v-if="user.photo_url"
-                    :src="user.photo_url" 
-                    class="avatar" 
-                    alt="Avatar"
-                >
-                
-                <h2 style="text-align: center;">{{ fullName }}</h2>
-                <p style="text-align: center; color: #666;" v-if="user.username">@{{ user.username }}</p>
+                <h2 style="text-align: center; margin-bottom: 25px;">{{ fullName }}</h2>
 
-                <div class="profile-item" @click="openSettings">Настройки</div>
-                <div class="profile-item" @click="openNotifications">Уведомления</div>
-                <div class="profile-item" @click="openSecurity">Безопасность</div>
-                <div class="profile-item" @click="openActivity">История действий</div>
-                <div class="profile-item" @click="openAbout">О приложении</div>
-                <div class="profile-item" @click="contactSupport">Поддержка</div>
-                <div class="profile-item" @click="logout" style="color: #e74c3c;">Выход</div>
+                <div class="menu-item" @click="openSettings">
+                    <i class="material-icons">settings</i>
+                    Настройки
+                </div>
+                
+                <div class="menu-item" @click="openNotifications">
+                    <i class="material-icons">notifications</i>
+                    Уведомления
+                </div>
+
+                <div class="menu-item" @click="openSecurity">
+                    <i class="material-icons">security</i>
+                    Безопасность
+                </div>
+
+                <div class="menu-item" @click="openActivity">
+                    <i class="material-icons">history</i>
+                    История действий
+                </div>
+
+                <div class="menu-item" @click="openAbout">
+                    <i class="material-icons">info</i>
+                    О приложении
+                </div>
+
+                <div class="menu-item" @click="contactSupport">
+                    <i class="material-icons">support</i>
+                    Поддержка
+                </div>
+
+                <div class="menu-item" @click="logout" style="color: #e74c3c;">
+                    <i class="material-icons">logout</i>
+                    Выход
+                </div>
             </div>
 
             <!-- Функции -->
             <div v-if="currentPage === 'functions'">
-                <div v-if="!showKnowledgeBase">
-                    <h3>Доступные функции:</h3>
-                    <div class="profile-item" @click="openQRScanner">Сканирование QR кода</div>
-                    <div class="profile-item" @click="openPolls">Опросы</div>
-                    <div class="profile-item" @click="showKnowledgeBase = true">База знаний</div>
+                <div v-if="!selectedBase">
+                    <h3 style="margin-bottom: 20px;">Доступные функции:</h3>
+                    
+                    <div class="menu-item" @click="openQRScanner">
+                        <i class="material-icons">qr_code_scanner</i>
+                        Сканирование QR кода
+                    </div>
+                    
+                    <div class="menu-item" @click="openPolls">
+                        <i class="material-icons">poll</i>
+                        Опросы
+                    </div>
+                    
+                    <div class="menu-item" @click="loadKnowledgeBases">
+                        <i class="material-icons">library_books</i>
+                        База знаний
+                    </div>
                 </div>
 
-                <!-- Подменю базы знаний -->
-                <div v-if="showKnowledgeBase">
-                    <div class="back-button" @click="showKnowledgeBase = false">← Назад</div>
-                    <h3>Базы знаний:</h3>
-                    <div class="profile-item" @click="openKnowledgeBase('tb')">Техника безопасности</div>
-                    <div class="profile-item" @click="openKnowledgeBase('labor')">Охрана труда</div>
-                    <div class="profile-item" @click="openKnowledgeBase('fire')">Пожарная безопасность</div>
+                <!-- Базы знаний -->
+                <div v-if="selectedBase">
+                    <div class="back-button" @click="selectedBase = null">
+                        <i class="material-icons">arrow_back</i>
+                        Назад к функциям
+                    </div>
+                    
+                    <h3>{{ selectedBase.title }}</h3>
+                    
+                    <div class="knowledge-base-card" v-for="item in knowledgeBaseItems" :key="item.id">
+                        <h4>{{ item.title }}</h4>
+                        <p>{{ item.description }}</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -121,8 +194,9 @@
             <div 
                 class="nav-button" 
                 :class="{active: currentPage === 'functions'}"
-                @click="currentPage = 'functions'; showKnowledgeBase = false"
+                @click="switchToFunctions"
             >
+                <i class="material-icons">widgets</i>
                 Функции
             </div>
             <div 
@@ -130,10 +204,14 @@
                 :class="{active: currentPage === 'profile'}"
                 @click="currentPage = 'profile'"
             >
+                <i class="material-icons">person</i>
                 Профиль
             </div>
         </div>
     </div>
+
+    <!-- Данные для баз знаний -->
+    <script src="knowledgeBase.js"></script>
 
     <script>
         const { createApp, ref, computed, onMounted } = Vue;
@@ -141,7 +219,8 @@
         createApp({
             setup() {
                 const currentPage = ref('functions');
-                const showKnowledgeBase = ref(false);
+                const selectedBase = ref(null);
+                const knowledgeBaseItems = ref([]);
                 const user = ref({});
                 
                 const fullName = computed(() => {
@@ -169,20 +248,26 @@
                 // Методы функций
                 const openQRScanner = () => Telegram.WebApp.showScanQrPopup({text: 'Наведите на QR-код'});
                 const openPolls = () => Telegram.WebApp.openLink('https://example.com/polls');
-                const openKnowledgeBase = (type) => {
-                    const bases = {
-                        tb: 'Техника безопасности',
-                        labor: 'Охрана труда',
-                        fire: 'Пожарная безопасность'
+                
+                const loadKnowledgeBases = () => {
+                    selectedBase.value = {
+                        title: 'Базы знаний',
+                        id: 'main'
                     };
-                    Telegram.WebApp.showAlert(`Открыта база: ${bases[type]}`);
+                    knowledgeBaseItems.value = window.knowledgeBaseData;
+                };
+
+                const switchToFunctions = () => {
+                    currentPage.value = 'functions';
+                    selectedBase.value = null;
                 };
 
                 onMounted(initUserData);
 
                 return {
                     currentPage,
-                    showKnowledgeBase,
+                    selectedBase,
+                    knowledgeBaseItems,
                     user,
                     fullName,
                     openSettings,
@@ -193,7 +278,8 @@
                     logout,
                     openQRScanner,
                     openPolls,
-                    openKnowledgeBase
+                    loadKnowledgeBases,
+                    switchToFunctions
                 };
             }
         }).mount('#app');
