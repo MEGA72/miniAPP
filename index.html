@@ -1,15 +1,12 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Telegram Mini App</title>
+    <title>WorkSafe App</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    
-    <!-- Иконки из Material Icons -->
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-    
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet>
     <style>
         :root {
             --tg-theme-bg-color: #ffffff;
@@ -74,20 +71,6 @@
             color: #666;
         }
 
-        .submenu {
-            margin-left: 20px;
-        }
-
-        .back-button {
-            color: #666;
-            padding: 10px;
-            margin-bottom: 10px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
         .knowledge-base-card {
             padding: 15px;
             background: white;
@@ -96,15 +79,28 @@
             margin: 10px 0;
         }
 
-        .knowledge-base-card h4 {
-            margin: 0 0 8px 0;
-            color: var(--tg-theme-button-color);
+        .quiz-card {
+            padding: 15px;
+            margin: 10px 0;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            cursor: pointer;
         }
 
-        .knowledge-base-card p {
-            margin: 0;
-            color: #666;
-            font-size: 14px;
+        .question-card {
+            padding: 20px;
+            background: var(--tg-theme-secondary-bg-color);
+            border-radius: 15px;
+            margin-bottom: 20px;
+        }
+
+        .option {
+            padding: 15px;
+            margin: 10px 0;
+            background: white;
+            border-radius: 10px;
+            cursor: pointer;
         }
     </style>
 </head>
@@ -113,8 +109,8 @@
         <div class="container">
             <!-- Профиль -->
             <div v-if="currentPage === 'profile'">
-                <h2 style="text-align: center; margin-bottom: 25px;">{{ fullName }}</h2>
-
+                <h2 style="text-align: center;">{{ fullName }}</h2>
+                
                 <div class="menu-item" @click="openSettings">
                     <i class="material-icons">settings</i>
                     Настройки
@@ -151,17 +147,17 @@
                 </div>
             </div>
 
-            <!-- Функции -->
+            <!-- Основной экран -->
             <div v-if="currentPage === 'functions'">
-                <div v-if="!selectedBase">
-                    <h3 style="margin-bottom: 20px;">Доступные функции:</h3>
+                <div v-if="!selectedBase && !currentQuiz">
+                    <h3>Доступные функции:</h3>
                     
                     <div class="menu-item" @click="openQRScanner">
                         <i class="material-icons">qr_code_scanner</i>
-                        Сканирование QR кода
+                        Сканирование QR
                     </div>
                     
-                    <div class="menu-item" @click="openPolls">
+                    <div class="menu-item" @click="currentPage = 'quizzes'">
                         <i class="material-icons">poll</i>
                         Опросы
                     </div>
@@ -174,44 +170,68 @@
 
                 <!-- Базы знаний -->
                 <div v-if="selectedBase">
-                    <div class="back-button" @click="selectedBase = null">
+                    <div class="menu-item" @click="selectedBase = null">
                         <i class="material-icons">arrow_back</i>
-                        Назад к функциям
+                        Назад
                     </div>
-                    
-                    <h3>{{ selectedBase.title }}</h3>
                     
                     <div class="knowledge-base-card" v-for="item in knowledgeBaseItems" :key="item.id">
                         <h4>{{ item.title }}</h4>
                         <p>{{ item.description }}</p>
                     </div>
                 </div>
+
+                <!-- Опросы -->
+                <div v-if="currentPage === 'quizzes'">
+                    <div class="menu-item" @click="currentPage = 'functions'">
+                        <i class="material-icons">arrow_back</i>
+                        Назад
+                    </div>
+                    
+                    <div class="quiz-card" v-for="quiz in availableQuizzes" :key="quiz.id" @click="startQuiz(quiz)">
+                        <h4>{{ quiz.title }}</h4>
+                        <p>{{ quiz.description }}</p>
+                    </div>
+                </div>
+
+                <!-- Прохождение опроса -->
+                <div v-if="currentQuiz">
+                    <div class="menu-item" @click="currentQuiz = null">
+                        <i class="material-icons">arrow_back</i>
+                        Назад
+                    </div>
+
+                    <div class="question-card">
+                        <h3>{{ currentQuiz.questions[currentQuestionIndex].text }}</h3>
+                        <div class="option" 
+                            v-for="option in currentQuiz.questions[currentQuestionIndex].options" 
+                            :key="option.id"
+                            @click="answerQuestion(option.id)">
+                            {{ option.text }}
+                        </div>
+                    </div>
+
+                    <button v-if="currentQuestionIndex === currentQuiz.questions.length - 1" 
+                            @click="submitQuiz"
+                            style="background: var(--tg-theme-button-color); color: white; padding: 15px; width: 100%; border: none; border-radius: 10px;">
+                        Отправить
+                    </button>
+                </div>
             </div>
         </div>
 
         <!-- Навигация -->
         <div class="nav-buttons">
-            <div 
-                class="nav-button" 
-                :class="{active: currentPage === 'functions'}"
-                @click="switchToFunctions"
-            >
+            <div class="nav-button" :class="{active: currentPage === 'functions'}" @click="currentPage = 'functions'">
                 <i class="material-icons">widgets</i>
                 Функции
             </div>
-            <div 
-                class="nav-button"
-                :class="{active: currentPage === 'profile'}"
-                @click="currentPage = 'profile'"
-            >
+            <div class="nav-button" :class="{active: currentPage === 'profile'}" @click="currentPage = 'profile'">
                 <i class="material-icons">person</i>
                 Профиль
             </div>
         </div>
     </div>
-
-    <!-- Данные для баз знаний -->
-    <script src="knowledgeBase.js"></script>
 
     <script>
         const { createApp, ref, computed, onMounted } = Vue;
@@ -222,7 +242,11 @@
                 const selectedBase = ref(null);
                 const knowledgeBaseItems = ref([]);
                 const user = ref({});
-                
+                const currentQuiz = ref(null);
+                const currentQuestionIndex = ref(0);
+                const availableQuizzes = ref([]);
+                const answers = ref({});
+
                 const fullName = computed(() => {
                     return [user.value.first_name, user.value.last_name]
                         .filter(Boolean)
@@ -237,32 +261,47 @@
                     Telegram.WebApp.expand();
                 };
 
-                // Методы профиля
-                const openSettings = () => Telegram.WebApp.showAlert('Настройки пока недоступны');
-                const openNotifications = () => Telegram.WebApp.showAlert('Настройте уведомления в телеграм');
-                const openSecurity = () => Telegram.WebApp.openLink('https://example.com/security');
-                const openActivity = () => Telegram.WebApp.showAlert('История действий пуста');
-                const openAbout = () => Telegram.WebApp.showAlert('Версия 2.1.0\n© 2024');
-                const logout = () => Telegram.WebApp.close();
-
-                // Методы функций
-                const openQRScanner = () => Telegram.WebApp.showScanQrPopup({text: 'Наведите на QR-код'});
-                const openPolls = () => Telegram.WebApp.openLink('https://example.com/polls');
-                
-                const loadKnowledgeBases = () => {
-                    selectedBase.value = {
-                        title: 'Базы знаний',
-                        id: 'main'
-                    };
+                const loadKnowledgeBases = async () => {
+                    selectedBase.value = true;
                     knowledgeBaseItems.value = window.knowledgeBaseData;
                 };
 
-                const switchToFunctions = () => {
-                    currentPage.value = 'functions';
-                    selectedBase.value = null;
+                const loadQuizzes = async () => {
+                    try {
+                        const [quiz1, quiz2] = await Promise.all([
+                            fetch('quizzes/quiz1.json').then(r => r.json()),
+                            fetch('quizzes/quiz2.json').then(r => r.json())
+                        ]);
+                        availableQuizzes.value = [quiz1, quiz2];
+                    } catch (error) {
+                        Telegram.WebApp.showAlert('Ошибка загрузки опросов');
+                    }
                 };
 
-                onMounted(initUserData);
+                const startQuiz = (quiz) => {
+                    currentQuiz.value = quiz;
+                    currentQuestionIndex.value = 0;
+                    answers.value = {};
+                };
+
+                const answerQuestion = (optionId) => {
+                    const questionId = currentQuiz.value.questions[currentQuestionIndex.value].id;
+                    answers.value[questionId] = optionId;
+                    if (currentQuestionIndex.value < currentQuiz.value.questions.length - 1) {
+                        currentQuestionIndex.value++;
+                    }
+                };
+
+                const submitQuiz = () => {
+                    Telegram.WebApp.showAlert('Спасибо за ответы!');
+                    currentQuiz.value = null;
+                    currentPage.value = 'functions';
+                };
+
+                onMounted(() => {
+                    initUserData();
+                    loadQuizzes();
+                });
 
                 return {
                     currentPage,
@@ -270,16 +309,21 @@
                     knowledgeBaseItems,
                     user,
                     fullName,
-                    openSettings,
-                    openNotifications,
-                    openSecurity,
-                    openActivity,
-                    openAbout,
-                    logout,
-                    openQRScanner,
-                    openPolls,
+                    currentQuiz,
+                    currentQuestionIndex,
+                    availableQuizzes,
                     loadKnowledgeBases,
-                    switchToFunctions
+                    startQuiz,
+                    answerQuestion,
+                    submitQuiz,
+                    openSettings: () => Telegram.WebApp.showAlert('В разработке'),
+                    openNotifications: () => Telegram.WebApp.showAlert('В разработке'),
+                    openSecurity: () => Telegram.WebApp.openLink('https://example.com'),
+                    openActivity: () => Telegram.WebApp.showAlert('История пуста'),
+                    openAbout: () => Telegram.WebApp.showAlert('Версия 1.0'),
+                    contactSupport: () => Telegram.WebApp.openTelegramLink('tg://resolve?domain=support'),
+                    logout: () => Telegram.WebApp.close(),
+                    openQRScanner: () => Telegram.WebApp.showScanQrPopup({text: 'Сканируйте QR-код'})
                 };
             }
         }).mount('#app');
