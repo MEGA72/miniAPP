@@ -6,7 +6,7 @@
     <title>WorkSafe App</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <style>
         :root {
             --tg-theme-bg-color: #ffffff;
@@ -102,6 +102,17 @@
             border-radius: 10px;
             cursor: pointer;
         }
+
+        .submit-btn {
+            width: 100%;
+            padding: 15px;
+            background: var(--tg-theme-button-color);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -110,12 +121,12 @@
             <!-- Профиль -->
             <div v-if="currentPage === 'profile'">
                 <h2 style="text-align: center;">{{ fullName }}</h2>
-                
+
                 <div class="menu-item" @click="openSettings">
                     <i class="material-icons">settings</i>
                     Настройки
                 </div>
-                
+
                 <div class="menu-item" @click="openNotifications">
                     <i class="material-icons">notifications</i>
                     Уведомления
@@ -150,18 +161,18 @@
             <!-- Основной экран -->
             <div v-if="currentPage === 'functions'">
                 <div v-if="!selectedBase && !currentQuiz">
-                    <h3>Доступные функции:</h3>
-                    
+                    <h3 style="margin-bottom: 20px;">Доступные функции:</h3>
+
                     <div class="menu-item" @click="openQRScanner">
                         <i class="material-icons">qr_code_scanner</i>
-                        Сканирование QR
+                        Сканирование QR кода
                     </div>
-                    
+
                     <div class="menu-item" @click="currentPage = 'quizzes'">
                         <i class="material-icons">poll</i>
                         Опросы
                     </div>
-                    
+
                     <div class="menu-item" @click="loadKnowledgeBases">
                         <i class="material-icons">library_books</i>
                         База знаний
@@ -174,7 +185,7 @@
                         <i class="material-icons">arrow_back</i>
                         Назад
                     </div>
-                    
+
                     <div class="knowledge-base-card" v-for="item in knowledgeBaseItems" :key="item.id">
                         <h4>{{ item.title }}</h4>
                         <p>{{ item.description }}</p>
@@ -182,12 +193,14 @@
                 </div>
 
                 <!-- Опросы -->
-                <div v-if="currentPage === 'quizzes'">
+                <div v-if="currentPage === 'quizzes' && !currentQuiz">
                     <div class="menu-item" @click="currentPage = 'functions'">
                         <i class="material-icons">arrow_back</i>
-                        Назад
+                        Назад к функциям
                     </div>
-                    
+
+                    <h3>Доступные опросы:</h3>
+
                     <div class="quiz-card" v-for="quiz in availableQuizzes" :key="quiz.id" @click="startQuiz(quiz)">
                         <h4>{{ quiz.title }}</h4>
                         <p>{{ quiz.description }}</p>
@@ -198,7 +211,7 @@
                 <div v-if="currentQuiz">
                     <div class="menu-item" @click="currentQuiz = null">
                         <i class="material-icons">arrow_back</i>
-                        Назад
+                        Назад к опросам
                     </div>
 
                     <div class="question-card">
@@ -211,10 +224,10 @@
                         </div>
                     </div>
 
-                    <button v-if="currentQuestionIndex === currentQuiz.questions.length - 1" 
-                            @click="submitQuiz"
-                            style="background: var(--tg-theme-button-color); color: white; padding: 15px; width: 100%; border: none; border-radius: 10px;">
-                        Отправить
+                    <button class="submit-btn" 
+                            v-if="currentQuestionIndex === currentQuiz.questions.length - 1"
+                            @click="submitQuiz">
+                        Отправить результаты
                     </button>
                 </div>
             </div>
